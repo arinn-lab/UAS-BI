@@ -1,0 +1,8 @@
+# dipakai untuk menjalankan ETL manual dari laptop (python etl/run_etl.py)
+pandas==2.3.3
+openpyxl==3.1.5
+sqlalchemy==2.1.9
+psycopg2-binary==2.9.13
+python-dotenv==1.2.1
+minio==7.2.20
+cryptography

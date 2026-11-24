@@ -1,0 +1,110 @@
+# Lingkungan pengembangan/uji data warehouse Vistaland (rancangan UTS:
+# Docker Compose untuk dev/test; cloud terkelola sebagai target produksi).
+#
+#   db       PostgreSQL 17 (schema stg, dw, mart, audit) + RBAC
+#   airflow  Apache Airflow 3.3 (orkestrasi ETL, backup, notifikasi)
+#   minio    object storage kompatibel S3 (arsip file sumber + backup)
+#   mailpit  penangkap email lokal untuk notifikasi (UI: http://localhost:8025)
+#
+# Pertama kali:  salin .env.example -> .env, isi passwordnya, lalu
+#                docker compose up -d --build
+# Semua password diambil dari file .env (tidak ada password di file ini).
+services:
+  db:
+    image: postgres:17
+    container_name: vistaland_db
+    environment:
+      POSTGRES_USER: vistaland                       # admin / DBA (superuser)
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?isi POSTGRES_ADMIN_PASSWORD di .env}
+      POSTGRES_DB: vistaland_dwh
+      # password user per peran, dipakai sql/03_rbac.sh saat database dibuat
+      ENGINEER_PASSWORD: ${ENGINEER_PASSWORD:?isi ENGINEER_PASSWORD di .env}
+      ANALYST_PASSWORD: ${ANALYST_PASSWORD:?isi ANALYST_PASSWORD di .env}
+      VIEWER_PASSWORD: ${VIEWER_PASSWORD:?isi VIEWER_PASSWORD di .env}
+    ports:
+      - "5433:5432"      # 5433 supaya tidak bentrok dengan PostgreSQL lain di laptop
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # dijalankan otomatis HANYA saat volume pgdata pertama kali dibuat
+      - ./sql/01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./sql/03_rbac.sh:/docker-entrypoint-initdb.d/03_rbac.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vistaland -d vistaland_dwh"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: pgsty/silo:latest
+    container_name: vistaland_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?isi MINIO_ROOT_USER di .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?isi MINIO_ROOT_PASSWORD di .env}
+    ports:
+      - "9000:9000"      # API S3
+      - "9001:9001"      # console web
+    volumes:
+      - miniodata:/data
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: vistaland_mailpit
+    ports:
+      - "8025:8025"      # UI untuk melihat email notifikasi
+      - "1025:1025"      # SMTP
+
+  airflow:
+    build:
+      context: .
+      dockerfile: airflow/Dockerfile
+    container_name: vistaland_airflow
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      mailpit:
+        condition: service_started
+    command: standalone
+    ports:
+      - "8081:8080"      # 8080 sering bentrok dengan proses lain di Windows
+    environment:
+      # ETL memakai user engineer (least privilege); backup/restore memakai admin
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_NAME: vistaland_dwh
+      DB_USER: vl_engineer
+      DB_PASSWORD: ${ENGINEER_PASSWORD}
+      DB_ADMIN_USER: vistaland
+      DB_ADMIN_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?isi BACKUP_ENCRYPTION_KEY di .env}
+      BACKUP_DIR: /opt/airflow/project/backups
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      EMAIL_DATA_ENGINEER: ${EMAIL_DATA_ENGINEER:-data.engineer@vistaland.local}
+      EMAIL_DBA: ${EMAIL_DBA:-dba@vistaland.local}
+      EMAIL_DATA_STEWARD: ${EMAIL_DATA_STEWARD:-data.steward@vistaland.local}
+      # jeda retry (menit); bisa diperkecil saat demo kegagalan
+      RETRY_DELAY_MINUTES: ${RETRY_DELAY_MINUTES:-10}
+      PYTHONDONTWRITEBYTECODE: "1"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DEFAULT_TIMEZONE: America/New_York
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/state/airflow.db
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./etl:/opt/airflow/project/etl
+      - ./sql:/opt/airflow/project/sql
+      - ./data:/opt/airflow/project/data
+      - ./logs:/opt/airflow/project/logs
+      - ./backups:/opt/airflow/project/backups
+      - airflow_state:/opt/airflow/state
+
+volumes:
+  pgdata:
+  miniodata:
+  airflow_state:

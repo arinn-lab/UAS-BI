@@ -1,0 +1,2 @@
+# skrip shell untuk container Linux harus berakhiran LF
+*.sh text eol=lf
