@@ -19,7 +19,6 @@ Tema warna pastel tetap mengikuti referensi:
 Huruf: Bricolage Grotesque untuk judul dan angka, Figtree untuk teks biasa
 (keduanya lisensi SIL OFL), disimpan di folder static.
 """
-import re
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -111,9 +110,9 @@ div[data-testid="stTable"] thead th {{ background: #F7F4FE; font-weight: 600; }}
 div[data-testid="stExpander"] details {{ border-color: {GARIS}; border-radius: 12px; }}
 """
 
-_svg = (FOLDER / "aset" / "ilustrasi_taman.svg").read_text(encoding="utf-8")
-# SVG diringkas jadi satu baris supaya tidak diubah oleh pengolah markdown Streamlit
-ILUSTRASI = re.sub(r">\s+<", "><", re.sub(r"<!--.*?-->", "", _svg, flags=re.S)).strip()
+# Gambar di kepala halaman. Untuk mengganti, cukup timpa file dashboard/static/ilustrasi_header.png
+# (sebaiknya PNG berlatar transparan, kira-kira 700 x 500 piksel).
+ILUSTRASI = "app/static/ilustrasi_header.png"
 
 
 def pasang_css():
@@ -182,7 +181,7 @@ def panel():
 
 def spanduk(judul, untuk, menjawab):
     """Kepala halaman: judul, untuk siapa halaman ini, pertanyaan yang dijawab,
-    dan ilustrasi taman hiburan yang digambar sendiri (SVG). Ilustrasi hanya
+    dan ilustrasi taman hiburan (file gambar di folder static). Ilustrasi hanya
     ada di kepala halaman, tidak di dalam grafik."""
     html(
         '<div class="tw-flex tw-items-end tw-justify-between tw-gap-6 tw-overflow-hidden '
@@ -191,7 +190,8 @@ def spanduk(judul, untuk, menjawab):
         f'<div class="tw-font-judul tw-text-[2.35rem] tw-font-semibold tw-leading-tight tw-tracking-tight tw-text-tinta">{judul}</div>'
         f'<div class="tw-mt-3 tw-text-[0.97rem] tw-leading-relaxed tw-text-tinta-lemah">Untuk '
         f'<span class="tw-font-semibold tw-text-tinta">{untuk}</span>. Menjawab {menjawab}.</div></div>'
-        f'<div class="tw-hidden lg:tw-block tw-w-[440px] tw-shrink-0">{ILUSTRASI}</div></div>')
+        f'<img src="{ILUSTRASI}" alt="" class="tw-hidden lg:tw-block tw-h-[176px] tw-w-auto '
+        f'tw-shrink-0 tw-self-center tw-mr-8 tw-my-3"></div>')
 
 
 def subjudul(teks):

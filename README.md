@@ -102,7 +102,9 @@ Tampilan:
   menjalankan dashboard. Kalau kelas Tailwind di file `.py` diubah, kompilasi ulang dari folder proyek:
   `npx tailwindcss@3 -c dashboard/tailwind/tailwind.config.js -i dashboard/tailwind/input.css -o dashboard/static/tailwind.css --minify`
 - huruf Bricolage Grotesque dan Figtree (lisensi SIL OFL) ada di `dashboard/static`.
-- ilustrasi kepala halaman digambar sendiri (`dashboard/aset/ilustrasi_taman.svg`).
+- gambar kepala halaman ada di `dashboard/static/ilustrasi_header.png`, logo sidebar di
+  `dashboard/aset/logo.png` dan `dashboard/aset/ikon.png` (ikon juga disalin ke `dashboard/static/ikon.png`).
+  Sumber gambar dicantumkan di laporan.
 - fitur interaktif: kartu KPI di Ringkasan bisa diklik untuk membuka halaman rinciannya, grafik tren
   bisa diganti antara revenue dan jumlah booking, baris tabel ringkasan per taman bisa dipilih untuk
   melihat rincian taman itu, semua grafik punya tooltip, dan tabel bisa diurutkan.
