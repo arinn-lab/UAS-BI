@@ -1,10 +1,38 @@
+[server]
+# file huruf di dashboard/static dibaca lewat alamat app/static/
+enableStaticServing = true
+
 [theme]
 base = "light"
-primaryColor = "#7c6cf0"
-backgroundColor = "#f4f5f9"
-secondaryBackgroundColor = "#ffffff"
-textColor = "#1b1b2f"
-font = "sans serif"
+primaryColor = "#6A4FC0"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F3F0FA"
+textColor = "#2B2340"
+borderColor = "#E4DDF3"
+baseRadius = "large"
+font = "Figtree, 'Segoe UI', sans-serif"
+headingFont = "'Bricolage Grotesque', 'Segoe UI', sans-serif"
+
+[[theme.fontFaces]]
+family = "Figtree"
+url = "app/static/figtree.woff2"
+weight = "300 900"
+
+[[theme.fontFaces]]
+family = "Bricolage Grotesque"
+url = "app/static/bricolage.woff2"
+weight = "200 800"
+
+[theme.sidebar]
+backgroundColor = "#F7F4FE"
+secondaryBackgroundColor = "#ECE6FA"
+textColor = "#2B2340"
+primaryColor = "#6A4FC0"
+borderColor = "#D6CCF2"
 
 [browser]
 gatherUsageStats = false
+
+[client]
+# sembunyikan tombol Deploy dan menu pengembang supaya tidak menutupi isi halaman
+toolbarMode = "viewer"

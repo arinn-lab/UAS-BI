@@ -6,3 +6,5 @@ logs/
 backups/
 *.dump
 *.dump.enc
+data/raw/_cadangan/
+/hasil_*.txt

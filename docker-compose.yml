@@ -35,6 +35,8 @@ services:
       retries: 10
 
   minio:
+    # image resmi minio/minio sudah dihapus dari Docker Hub (2026); Silo adalah
+    # fork komunitas MinIO dengan perintah dan variabel MINIO_* yang sama
     image: pgsty/silo:latest
     container_name: vistaland_minio
     command: server /data --console-address ":9001"
@@ -90,6 +92,11 @@ services:
       EMAIL_DATA_STEWARD: ${EMAIL_DATA_STEWARD:-data.steward@vistaland.local}
       # jeda retry (menit); bisa diperkecil saat demo kegagalan
       RETRY_DELAY_MINUTES: ${RETRY_DELAY_MINUTES:-10}
+      # akun viewer untuk menyalin data mart ke dashboard/data (dashboard online)
+      DASHBOARD_DB_USER: vl_viewer
+      DASHBOARD_DB_PASSWORD: ${VIEWER_PASSWORD}
+      DASHBOARD_DB_HOST: db
+      DASHBOARD_DB_PORT: "5432"
       PYTHONDONTWRITEBYTECODE: "1"
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DEFAULT_TIMEZONE: America/New_York
@@ -102,6 +109,7 @@ services:
       - ./data:/opt/airflow/project/data
       - ./logs:/opt/airflow/project/logs
       - ./backups:/opt/airflow/project/backups
+      - ./dashboard/data:/opt/airflow/project/dashboard/data
       - airflow_state:/opt/airflow/state
 
 volumes:

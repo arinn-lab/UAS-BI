@@ -1,4 +1,4 @@
-# Kamus Data dan Definisi KPI — Vistaland DWH
+# Kamus Data dan Definisi KPI, Vistaland DWH
 
 Dokumen ini adalah kamus data terpusat yang dirancang di UTS dan dipelihara oleh Data Steward.
 Mata uang diasumsikan **USD** pada seluruh KPI. Data booking bersifat **simulasi**. Data calendar
@@ -47,6 +47,7 @@ Animal Kingdom → Vista Wildlands. Season: Des–Feb Winter, Mar–Mei Spring, 
 | `mart.v_sales_revenue` | Sales & Revenue | `fact_booking` + 5 dimensi | `revenue_per_guest` dan `revenue_per_ticket_day` dihitung di view |
 | `mart.v_park_operations` | Park Operations | `fact_crowd_daily` + 3 dimensi | `operating_minutes_observed` = jam operasional tanpa imputasi |
 | `mart.v_wait_time` | Park Operations | `fact_wait_time` + 3 dimensi | `ride_status` = Active/Archived dari `is_archived` |
+| `mart.v_status_data` | Status data | ringkasan `audit.etl_log` | waktu terakhir mart diperbarui dan hasil validasi terakhir, supaya viewer tidak perlu akses ke schema audit |
 
 ## 5. Definisi KPI
 

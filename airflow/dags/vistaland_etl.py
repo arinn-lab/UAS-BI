@@ -11,7 +11,8 @@ DAG Airflow Vistaland, mengikuti tabel Scheduling pada rancangan UTS
   vistaland_load_dimensi          harian 05:00        9 dimensi
   vistaland_load_fakta            harian 05:15        3 fakta
   vistaland_refresh_mart          harian 05:30        data mart, validasi, cek 06:00,
-                                                      ringkasan Data Steward
+                                                      ringkasan Data Steward,
+                                                      salinan data mart untuk dashboard
   vistaland_backup                harian 23:00        backup terenkripsi + retensi
   vistaland_etl                   manual              seluruh pipeline berurutan
                                                       (demo / mengejar data setelah restore)
@@ -64,6 +65,8 @@ def notifikasi_gagal(context):
     logger = config.get_logger()
     ti = context["task_instance"]
     exc = context.get("exception")
+    if exc is None and ti.task_id.startswith("tunggu_sebelum_"):
+        exc = "sensor habis waktu: tahap sebelumnya belum SUCCESS dalam 2 jam"
     pesan = (f"DAG {ti.dag_id} | task {ti.task_id} | run {context.get('run_id')} | "
              f"error: {exc}")
     logger.error("CALLBACK KEGAGALAN | %s", pesan)
@@ -151,6 +154,12 @@ def t_validasi_mart(**context):
     pipeline.validate_source_mart(config.get_engine(), run_id_etl(context))
 
 
+def t_snapshot(**context):
+    import export_snapshot
+
+    export_snapshot.export_snapshot(run_id_etl(context))
+
+
 def t_ketepatan(**context):
     import config
     import pipeline
@@ -232,10 +241,12 @@ with dag("vistaland_load_fakta", "15 5 * * *",
 with dag("vistaland_refresh_mart", "30 5 * * *",
          "05:30 refresh data mart, validasi, cek ketepatan 06:00, ringkasan steward",
          ["mart"]):
-    (sensor("refresh_mart") >> py("refresh_mart", t_mart)
-     >> py("validasi_source_mart", t_validasi_mart)
-     >> py("cek_ketepatan_waktu", t_ketepatan)
-     >> py("ringkasan_data_steward", t_steward))
+    validasi = (sensor("refresh_mart") >> py("refresh_mart", t_mart)
+                >> py("validasi_source_mart", t_validasi_mart))
+    validasi >> py("cek_ketepatan_waktu", t_ketepatan) >> py("ringkasan_data_steward", t_steward)
+    # salinan data mart untuk dashboard versi online (cabang terpisah supaya
+    # ringkasan Data Steward tetap terkirim walaupun ekspor gagal)
+    validasi >> py("ekspor_snapshot", t_snapshot)
 
 with dag("vistaland_backup", "0 23 * * *",
          "23:00 backup database terenkripsi (RPO 24 jam) + retensi data", ["backup"]):
@@ -249,9 +260,10 @@ with dag("vistaland_etl", None,
          "Manual: seluruh pipeline Vistaland berurutan", ["manual"]):
     extracts = [py(f"extract_{s}", t_extract, op_kwargs={"source": s})
                 for s in ("booking", "calendar", "ridestats")]
-    (extracts >> py("transform_validasi", t_validasi, retries=0)
-     >> py("load_dimensi", t_dimensi)
-     >> py("load_fakta", t_fakta)
-     >> py("refresh_mart", t_mart)
-     >> py("validasi_source_mart", t_validasi_mart)
-     >> py("ringkasan_data_steward", t_steward))
+    validasi = (extracts >> py("transform_validasi", t_validasi, retries=0)
+                >> py("load_dimensi", t_dimensi)
+                >> py("load_fakta", t_fakta)
+                >> py("refresh_mart", t_mart)
+                >> py("validasi_source_mart", t_validasi_mart))
+    validasi >> py("ringkasan_data_steward", t_steward)
+    validasi >> py("ekspor_snapshot", t_snapshot)

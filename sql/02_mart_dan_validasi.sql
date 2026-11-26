@@ -101,11 +101,27 @@ JOIN dw.dim_year y ON y.year_key = f.year_key
 JOIN dw.dim_park pk ON pk.park_key = f.park_key
 JOIN dw.dim_ride r ON r.ride_key = f.ride_key;
 
+-- ================= STATUS DATA (untuk keterangan "data terakhir diperbarui") =================
+-- Dashboard login sebagai viewer yang tidak boleh membaca schema audit.
+-- View ini hanya membuka ringkasan kecil dari audit.etl_log: kapan data mart
+-- terakhir berhasil diperbarui dan hasil validasi source vs mart terakhir.
+CREATE OR REPLACE VIEW mart.v_status_data AS
+SELECT
+    (SELECT MAX(finished_at) FROM audit.etl_log
+      WHERE step = 'refresh_mart' AND status = 'SUCCESS')          AS mart_diperbarui,
+    (SELECT status FROM audit.etl_log
+      WHERE step = 'validasi_source_mart'
+      ORDER BY log_id DESC LIMIT 1)                                 AS status_validasi,
+    (SELECT finished_at FROM audit.etl_log
+      WHERE step = 'validasi_source_mart'
+      ORDER BY log_id DESC LIMIT 1)                                 AS waktu_validasi;
+
 -- view dimiliki role_engineer, supaya refresh berikutnya (oleh vl_engineer)
 -- tetap boleh mengganti view walaupun pernah dibuat oleh admin
 ALTER VIEW mart.v_sales_revenue   OWNER TO role_engineer;
 ALTER VIEW mart.v_park_operations OWNER TO role_engineer;
 ALTER VIEW mart.v_wait_time       OWNER TO role_engineer;
+ALTER VIEW mart.v_status_data     OWNER TO role_engineer;
 GRANT SELECT ON ALL TABLES IN SCHEMA mart TO role_viewer, role_analyst;
 
 -- ========== cek jumlah baris (harus 6 baris, tidak error) ==========
