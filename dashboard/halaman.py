@@ -750,7 +750,7 @@ def kamus(d, info):
     s, o, w = d["sales"], d["ops"], d["wait"]
     status = pd.DataFrame([
         ("Sumber data dashboard", info["keterangan"]),
-        ("Data mart terakhir diperbarui", str(info.get("mart_diperbarui") or "-")[:16].replace("T", " ")),
+        ("Data mart terakhir diperbarui", t.waktu_orlando(info.get("mart_diperbarui"))),
         ("Hasil validasi source vs mart terakhir", info.get("status_validasi") or "-"),
         ("Booking (v_sales_revenue)", f"{t.angka(len(s))} baris, kedatangan "
                                        f"{s['arrival_date'].min():%d/%m/%Y} sampai {s['arrival_date'].max():%d/%m/%Y}"),

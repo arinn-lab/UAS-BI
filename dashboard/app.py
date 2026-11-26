@@ -11,7 +11,6 @@ membaca salinan data mart di dashboard/data. Lihat sumber_data.py.
 from functools import partial
 from pathlib import Path
 
-import pandas as pd
 import streamlit as st
 
 import halaman
@@ -55,11 +54,5 @@ nav.run()
 # identitas organisasi selalu di bagian bawah sidebar, setelah filter halaman
 with st.sidebar:
     st.divider()
-    try:
-        waktu = pd.Timestamp(info.get("mart_diperbarui"))
-        if pd.isna(waktu):
-            raise ValueError("waktu kosong")
-        diperbarui = f"{waktu.day} {t.BULAN[waktu.month - 1]} {waktu.year}, {waktu:%H:%M}"
-    except (TypeError, ValueError):
-        diperbarui = "-"
+    diperbarui = t.waktu_orlando(info.get("mart_diperbarui"))
     t.kartu_organisasi(diperbarui, info.get("catatan") or "")

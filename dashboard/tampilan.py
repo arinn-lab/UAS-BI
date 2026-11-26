@@ -60,13 +60,10 @@ HARI = {"Monday": "Senin", "Tuesday": "Selasa", "Wednesday": "Rabu", "Thursday":
 JUDUL = "'Bricolage Grotesque', 'Segoe UI', sans-serif"
 BADAN = "'Figtree', 'Segoe UI', sans-serif"
 
-# kelas grid ditulis lengkap supaya terbaca oleh Tailwind saat kompilasi
-GRID_KOLOM = {
-    2: "tw-grid-cols-1 sm:tw-grid-cols-2",
-    3: "tw-grid-cols-1 md:tw-grid-cols-3",
-    4: "tw-grid-cols-2 lg:tw-grid-cols-4",
-    5: "tw-grid-cols-2 lg:tw-grid-cols-5",
-}
+# Grid kartu menyesuaikan lebar area utama (bukan lebar layar): kartu turun ke baris
+# berikutnya kalau ruangnya tidak cukup, jadi tetap rapi di laptop kecil dan HP.
+GRID_KPI = "tw-grid-cols-[repeat(auto-fit,minmax(10rem,1fr))]"
+GRID_TINDAK = "tw-grid-cols-[repeat(auto-fit,minmax(15rem,1fr))]"
 
 # CSS untuk elemen bawaan Streamlit (tidak bisa diberi kelas Tailwind langsung)
 CSS = f"""
@@ -158,6 +155,21 @@ def poin(x, des=1):
     return f"{tanda}{angka(x, des)} poin"
 
 
+def waktu_orlando(v):
+    """Waktu di audit.etl_log dicatat oleh container Airflow dalam UTC (tanpa zona waktu).
+    Untuk pengguna Vistaland, waktunya ditampilkan dalam waktu Orlando (America/New_York)."""
+    try:
+        ts = pd.Timestamp(v)
+    except (TypeError, ValueError):
+        return "-"
+    if pd.isna(ts):
+        return "-"
+    if ts.tzinfo is None:
+        ts = ts.tz_localize("UTC")
+    ts = ts.tz_convert("America/New_York")
+    return f"{ts.day} {BULAN[ts.month - 1]} {ts.year}, {ts:%H:%M} waktu Orlando"
+
+
 def label_bulan(ts):
     ts = pd.Timestamp(ts)
     return f"{BULAN[ts.month - 1]} {ts.year}"
@@ -220,8 +232,7 @@ def papan():
         _papan["aktif"] = False
         isi = _papan["isi"]
         if isi:
-            kolom = GRID_KOLOM.get(len(isi), GRID_KOLOM[4])
-            html(f'<div class="tw-grid {kolom} tw-gap-4">{"".join(isi)}</div>')
+            html(f'<div class="tw-grid {GRID_KPI} tw-gap-4">{"".join(isi)}</div>')
 
 
 def tiket(label, nilai, konteks="", sorot=False, tautan=None, nama_tautan=""):
@@ -251,7 +262,7 @@ def tiket(label, nilai, konteks="", sorot=False, tautan=None, nama_tautan=""):
         f'<div class="tw-flex tw-min-h-[2.6rem] tw-items-start tw-gap-2 tw-text-[0.9rem] tw-font-medium tw-leading-snug tw-text-tinta-lemah">'
         f'<span class="tw-mt-[5px] tw-h-2.5 tw-w-2.5 tw-shrink-0 tw-rounded-full" style="background:{titik}"></span>'
         f'<span>{label}</span></div>'
-        f'<div class="tw-mt-3 tw-font-judul tw-text-[1.9rem] tw-font-semibold tw-leading-none tw-tracking-tight '
+        f'<div class="tw-mt-3 tw-font-judul tw-text-[clamp(1.5rem,2.1vw,1.9rem)] tw-font-semibold tw-leading-none tw-tracking-tight tw-whitespace-nowrap '
         f'tw-tabular-nums {kelas_nilai}">{nilai}</div>'
         f'<div class="tw-mt-2 tw-text-[0.86rem] tw-leading-normal tw-text-tinta-lemah">{konteks}</div>'
         f'{bawah}</{tag}>')
@@ -300,7 +311,7 @@ def daftar_tindak(item):
             f'tw-border-garis tw-pt-4 tw-pl-5 tw-min-h-[5.4rem]"><span class="tw-text-[0.82rem] tw-text-tinta-lemah">'
             f'Ditujukan ke <span class="tw-font-semibold tw-text-tinta">{it.get("siapa", "-")}</span></span>'
             f'{link}</div></div>')
-    html(f'<div class="tw-grid {GRID_KOLOM.get(len(kartu), GRID_KOLOM[3])} tw-gap-4">{"".join(kartu)}</div>')
+    html(f'<div class="tw-grid {GRID_TINDAK} tw-gap-4">{"".join(kartu)}</div>')
 
 
 def tabel_angka(df, judul="Lihat angka dalam tabel"):
